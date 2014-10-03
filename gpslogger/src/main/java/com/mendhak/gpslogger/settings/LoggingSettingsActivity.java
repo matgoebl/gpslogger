@@ -18,17 +18,24 @@
 package com.mendhak.gpslogger.settings;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.text.Html;
+import android.util.Log;
 import android.view.MenuItem;
+import android.widget.Toast;
+
 import com.mendhak.gpslogger.GpsMainActivity;
 import com.mendhak.gpslogger.R;
 import com.mendhak.gpslogger.common.FileDialog.FileDialog;
@@ -36,6 +43,7 @@ import com.mendhak.gpslogger.common.Utilities;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.UUID;
 
 /**
  * A {@link android.preference.PreferenceActivity} that presents a set of application settings. On
@@ -54,7 +62,7 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
     private static final org.slf4j.Logger tracer = LoggerFactory.getLogger(LoggingSettingsActivity.class.getSimpleName());
     SharedPreferences prefs;
     private final static int SELECT_FOLDER_DIALOG = 420;
-
+    String btleDevice;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +125,11 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
         CheckBoxPreference chkLog_opengts = (CheckBoxPreference) findPreference("log_opengts");
         chkLog_opengts.setOnPreferenceClickListener(this);
 
+        Preference btleScan = (Preference) findPreference("btle_scan");
+        btleScan.setOnPreferenceClickListener(this);
+        btleDevice = prefs.getString("btle_device", "no device yet");
+        btleScan.setSummary(btleDevice);
+
         /**
          * Logging Details - New file creation
          */
@@ -136,7 +149,6 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
 
 
     }
-
 
     @Override
     public boolean onPreferenceClick(Preference preference) {
@@ -160,6 +172,63 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
             return true;
         }
 
+        if (preference.getKey().equals("btle_scan")) {
+            final Preference btleScan = (Preference) findPreference("btle_scan");
+            btleScan.setSummary("Scanning...");
+            btleDevice = "no device found";
+
+            final BluetoothManager bluetoothManager;
+            bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+            final BluetoothAdapter mBluetoothAdapter;
+            mBluetoothAdapter = bluetoothManager.getAdapter();
+            if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+                btleDevice="bluetooth is disabled";
+            } else {
+                final UUID CSC_SERVICE_UUID = UUID.fromString("00001816-0000-1000-8000-00805f9b34fb");
+                UUID[] serviceUUIDs = new UUID[]{CSC_SERVICE_UUID};
+                boolean mScanning;
+                final long SCAN_PERIOD = 30000;
+                final Handler handler = new Handler();
+                final BluetoothAdapter.LeScanCallback mLeScanCallback =
+                        new BluetoothAdapter.LeScanCallback() {
+                            @Override
+                            public void onLeScan(final BluetoothDevice device, final int rssi,
+                                                 final byte[] scanRecord) {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        //mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                                        //handler.removeCallbacksAndMessages(null);
+
+                                        btleDevice = device.getAddress();
+                                        String deviceInfo = String.format("%s %s (%d db)", device.getName(), btleDevice, rssi);
+                                        //btleScan.setSummary(deviceInfo);
+
+                                        Toast.makeText(getApplicationContext(), "Found " + deviceInfo, Toast.LENGTH_LONG).show();
+                                        String dump = "";
+                                        for (byte b : scanRecord)
+                                            dump += String.format("%02x ", b);
+                                        Log.d("BTLE_scanRecord",deviceInfo + " payload:" + dump);
+                                    }
+                                });
+                            }
+                        };
+
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                        btleScan.setSummary(btleDevice);
+                        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putString("btle_device", btleDevice);
+                        editor.apply();
+                    }
+                }, SCAN_PERIOD);
+                mBluetoothAdapter.startLeScan(serviceUUIDs, mLeScanCallback);
+            }
+            return true;
+        }
         return false;
     }
 
