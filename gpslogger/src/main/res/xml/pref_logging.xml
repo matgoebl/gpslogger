@@ -134,5 +134,25 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/pref_bicycle">
+        <CheckBoxPreference
+            android:key="btle_activate"
+            android:title="@string/btle_activate_title"
+            android:summary="@string/btle_activate_summary"
+            android:defaultValue="false"
+            />
+        <EditTextPreference
+            android:key="wheel_size"
+            android:title="@string/wheel_size_title"
+            android:summary="@string/wheel_size_summary"
+            android:dialogTitle="@string/wheel_size_dialog_title"
+            android:numeric="integer"
+            android:maxLength="4"
+            android:hint="@string/wheel_size_hint"/>
+        <Preference
+            android:key="btle_scan"
+            android:title="@string/btle_scan_title"
+            android:summary="@string/btle_scan_summary"/>
+    </PreferenceCategory>
 
 </PreferenceScreen>
