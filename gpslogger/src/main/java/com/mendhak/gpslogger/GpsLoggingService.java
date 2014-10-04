@@ -25,6 +25,14 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -38,6 +46,8 @@ import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
+import android.util.Log;
+
 import com.mendhak.gpslogger.common.AppSettings;
 import com.mendhak.gpslogger.common.IActionListener;
 import com.mendhak.gpslogger.common.Session;
@@ -54,6 +64,7 @@ import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 public class GpsLoggingService extends Service implements IActionListener {
     private static NotificationManager notificationManager;
@@ -62,6 +73,7 @@ public class GpsLoggingService extends Service implements IActionListener {
     private final IBinder binder = new GpsLoggingBinder();
     AlarmManager nextPointAlarmManager;
     private NotificationCompat.Builder nfc = null;
+    private BluetoothManager bluetooth;
 
     private org.slf4j.Logger tracer;
     // ---------------------------------------------------
@@ -101,6 +113,7 @@ public class GpsLoggingService extends Service implements IActionListener {
 
         tracer.debug(".");
         nextPointAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        bluetooth = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
     }
 
 
@@ -140,10 +153,13 @@ public class GpsLoggingService extends Service implements IActionListener {
                 boolean startRightNow = bundle.getBoolean("immediatestart");
                 boolean sendEmailNow = bundle.getBoolean("emailAlarm");
                 boolean getNextPoint = bundle.getBoolean("getnextpoint");
+                boolean startBTLE = bundle.getBoolean("startbtle");
+                boolean stopBTLE = bundle.getBoolean("stopbtle");
 
                 tracer.debug("stopRightNow - " + String.valueOf(stopRightNow) + ", startRightNow - "
                         + String.valueOf(startRightNow) + ", sendEmailNow - " + String.valueOf(sendEmailNow)
-                        + ", getNextPoint - " + String.valueOf(getNextPoint));
+                        + ", getNextPoint - " + String.valueOf(getNextPoint)
+                        + ", startBTLE - " + String.valueOf(startBTLE) + ", stopBTLE - " + String.valueOf(stopBTLE));
 
                 if (startRightNow) {
                     tracer.info("Intent received - Start Logging Now");
@@ -166,6 +182,16 @@ public class GpsLoggingService extends Service implements IActionListener {
                 if (getNextPoint) {
                     tracer.debug("Intent received - Get Next Point");
                     needToStartGpsManager = true;
+                }
+
+                if (startBTLE) {
+                    tracer.info("Intent received - Start BTLE Now");
+                    StartBTLE();
+                }
+
+                if (stopBTLE) {
+                    tracer.info("Intent received - Stop BTLE now");
+                    StopBTLE();
                 }
 
                 String setNextPointDescription = bundle.getString("setnextpointdescription");
@@ -245,6 +271,12 @@ public class GpsLoggingService extends Service implements IActionListener {
             tracer.debug("Service restarted with null intent. Start logging.");
             StartLogging();
 
+            SharedPreferences prefs = PreferenceManager
+                    .getDefaultSharedPreferences(getApplicationContext());
+            boolean startBTLE = prefs.getBoolean("btle_activate", false);
+            if (startBTLE) {
+               StartBTLE();
+            }
         }
     }
 
@@ -964,5 +996,19 @@ public class GpsLoggingService extends Service implements IActionListener {
         }
     }
 
+    /**
+     * BTLE activation
+     */
+
+    protected void StartBTLE() {
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(getApplicationContext());
+        String btleDevice = prefs.getString("btle_device", "no device yet");
+        tracer.debug("Starting BTLE waiting for '"+btleDevice+"'.");
+
+    }
+    protected void StopBTLE() {
+
+    }
 
 }
