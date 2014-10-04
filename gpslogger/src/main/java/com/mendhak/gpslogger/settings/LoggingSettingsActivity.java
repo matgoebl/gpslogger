@@ -35,6 +35,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.mendhak.gpslogger.GpsLoggingService;
 import com.mendhak.gpslogger.GpsMainActivity;
 import com.mendhak.gpslogger.R;
 import com.mendhak.gpslogger.common.FileDialog.FileDialog;
@@ -119,6 +120,9 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
         CheckBoxPreference chkLog_opengts = (CheckBoxPreference) findPreference("log_opengts");
         chkLog_opengts.setOnPreferenceClickListener(this);
 
+        Preference btleActivate = (Preference) findPreference("btle_activate");
+        btleActivate.setOnPreferenceClickListener(this);
+
         Preference btleScan = (Preference) findPreference("btle_scan");
         btleScan.setOnPreferenceClickListener(this);
         btleDevice = prefs.getString("btle_device", "no device yet");
@@ -163,6 +167,16 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
             if (chkLog_opengts.isChecked()) {
                 startActivity(new Intent("com.mendhak.gpslogger.OPENGTS_SETUP"));
             }
+            return true;
+        }
+
+        if (preference.getKey().equals("btle_activate")) {
+            boolean startBTLE = prefs.getBoolean("btle_activate", false);
+            tracer.info("Did the user ask for BTLE activation? - "
+                    + String.valueOf(startBTLE));
+            Intent serviceIntent = new Intent(getApplicationContext(), GpsLoggingService.class);
+            serviceIntent.putExtra(startBTLE?"startbtle":"stopbtle", true);
+            getApplicationContext().startService(serviceIntent);
             return true;
         }
 

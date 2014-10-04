@@ -45,6 +45,18 @@ public class StartupReceiver extends BroadcastReceiver {
                 serviceIntent.putExtra("immediatestart", true);
                 context.startService(serviceIntent);
             }
+
+            boolean startBTLE = prefs.getBoolean("btle_activate", false);
+
+            tracer.info("Did the user ask for BTLE activation? - "
+                    + String.valueOf(startBTLE));
+
+            if (startBTLE) {
+                tracer.info("Launching BTLE activation");
+                Intent serviceIntent = new Intent(context, GpsLoggingService.class);
+                serviceIntent.putExtra("startbtle", true);
+                context.startService(serviceIntent);
+            }
         } catch (Exception ex) {
             tracer.error("StartupReceiver", ex);
 
