@@ -1005,10 +1005,169 @@ public class GpsLoggingService extends Service implements IActionListener {
                 .getDefaultSharedPreferences(getApplicationContext());
         String btleDevice = prefs.getString("btle_device", "no device yet");
         tracer.debug("Starting BTLE waiting for '"+btleDevice+"'.");
-
+        final BluetoothAdapter adapter = bluetooth.getAdapter();
+        final BluetoothDevice device = adapter.getRemoteDevice(btleDevice);
+        device.connectGatt(getApplicationContext(), true, bluetoothGattCallback);
     }
     protected void StopBTLE() {
 
+    }
+
+
+
+    private static final UUID CSC_SERVICE_UUID = UUID.fromString("00001816-0000-1000-8000-00805f9b34fb");
+    private static final UUID CSC_CHARACTERISTIC_UUID = UUID.fromString("00002a5b-0000-1000-8000-00805f9b34fb");
+    private static final UUID BTLE_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+    private BluetoothGatt connectedGatt;
+    private boolean connectingToGatt;
+
+    private final Object connectingToGattMonitor = new Object();
+
+    public static final int NOT_SET = Integer.MIN_VALUE;
+
+
+    private BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int state) {
+            connectingToGatt = false;
+            super.onConnectionStateChange(gatt, status, state);
+            tracer.debug("onConnectionStateChange gatt:" + gattToString(gatt) + " status:" + statusToString(status) + " state:" + connectionStateToString(state));
+
+            //updateConnectionStateDisplay(state);
+
+            switch (state) {
+                case BluetoothGatt.STATE_CONNECTED: {
+                    //showText("STATE_CONNECTED", Style.INFO);
+                    //setConnectedGatt(gatt);
+                    gatt.discoverServices();
+                    break;
+                }
+                case BluetoothGatt.STATE_DISCONNECTED:
+                    //showText("STATE_DISCONNECTED", Style.ALERT);
+                case BluetoothGatt.GATT_FAILURE: {
+                    //setConnectedGatt(null);
+                    break;
+                }
+            }
+        }
+
+        @Override
+        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+            super.onReadRemoteRssi(gatt, rssi, status);
+            tracer.debug("onReadRemoteRssi rssi:" + rssi);
+            //updateRssiDisplay(rssi);
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            super.onServicesDiscovered(gatt, status);
+            tracer.debug("onServicesDiscovered status:" + statusToString(status));
+            BluetoothGattCharacteristic valueCharacteristic = gatt.getService(CSC_SERVICE_UUID).getCharacteristic(CSC_CHARACTERISTIC_UUID);
+            boolean notificationSet = gatt.setCharacteristicNotification(valueCharacteristic, true);
+            tracer.debug("registered for updates " + (notificationSet ? "successfully" : "unsuccessfully"));
+
+            BluetoothGattDescriptor descriptor = valueCharacteristic.getDescriptor(BTLE_NOTIFICATION_DESCRIPTOR_UUID);
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            boolean writeDescriptorSuccess = gatt.writeDescriptor(descriptor);
+            tracer.debug("wrote Descriptor for updates " + (writeDescriptorSuccess ? "successfully" : "unsuccessfully") );
+        }
+
+        double lastWheelTime = NOT_SET;
+        long lastWheelCount = NOT_SET;
+        double wheelSize = 2.17;
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+            byte[] value = characteristic.getValue();
+
+            final long cumulativeWheelRevolutions       = (value[1] & 0xff) | ((value[2] & 0xff) << 8) | ((value[3] & 0xff) << 16) | ((value[4] & 0xff) << 24);
+            final int lastWheelEventReadValue           = (value[5] & 0xff) | ((value[6] & 0xff) << 8);
+            final int cumulativeCrankRevolutions        = (value[7] & 0xff) | ((value[8] & 0xff) << 8);
+            final int lastCrankEventReadValue           = (value[9] & 0xff) | ((value[10] & 0xff) << 8);
+
+            double lastWheelEventTime = lastWheelEventReadValue / 1024.0;
+
+            tracer.debug("onCharacteristicChanged " + cumulativeWheelRevolutions + ":" + lastWheelEventReadValue + ":" + cumulativeCrankRevolutions + ":" + lastCrankEventReadValue);
+
+            if (lastWheelTime == NOT_SET){
+                lastWheelTime = lastWheelEventTime;
+            }
+            if (lastWheelCount == NOT_SET){
+                lastWheelCount = cumulativeWheelRevolutions;
+            }
+
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    distanceLabel.setText( String.format( "Distance: %.2f", cumulativeWheelRevolutions * wheelSize));
+//                }
+//            });
+
+            long numberOfWheelRevolutions = cumulativeWheelRevolutions - lastWheelCount;
+
+            if (lastWheelTime  != lastWheelEventTime && numberOfWheelRevolutions > 0){
+                double timeDiff = lastWheelEventTime - lastWheelTime;
+
+                double speedinMetersPerSeconds = (wheelSize * numberOfWheelRevolutions) / timeDiff;
+                double speedInKilometersPerHour = speedinMetersPerSeconds * 3.6;
+
+//                showSpeed((int) speedInKilometersPerHour);
+                tracer.debug("speed:" + speedInKilometersPerHour);
+
+                lastWheelCount = cumulativeWheelRevolutions;
+                lastWheelTime = lastWheelEventTime;
+            }
+
+            gatt.readRemoteRssi();
+        }
+    };
+    public static String connectionStateToString(int state) {
+        switch (state) {
+            case BluetoothProfile.STATE_CONNECTED:
+                return "STATE_CONNECTED";
+            case BluetoothProfile.STATE_DISCONNECTED:
+                return "STATE_DISCONNECTED";
+            case BluetoothProfile.STATE_CONNECTING:
+                return "STATE_CONNECTING";
+            case BluetoothProfile.STATE_DISCONNECTING:
+                return "STATE_DISCONNECTING";
+            default:
+                return "unknown state:" + state;
+        }
+    }
+
+    public static String statusToString(int status) {
+        switch (status){
+            case BluetoothGatt.GATT_SUCCESS:
+                return "GATT_SUCCESS";
+            case BluetoothGatt.GATT_READ_NOT_PERMITTED:
+                return "GATT_READ_NOT_PERMITTED";
+            case BluetoothGatt.GATT_WRITE_NOT_PERMITTED:
+                return "GATT_WRITE_NOT_PERMITTED";
+            case BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED:
+                return "GATT_REQUEST_NOT_SUPPORTED";
+            case BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION:
+                return "GATT_INSUFFICIENT_AUTHENTICATION";
+            case BluetoothGatt.GATT_INSUFFICIENT_ENCRYPTION:
+                return "GATT_INSUFFICIENT_ENCRYPTION";
+            case BluetoothGatt.GATT_INVALID_OFFSET:
+                return "GATT_INVALID_OFFSET";
+            case BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH:
+                return "GATT_INVALID_ATTRIBUTE_LENGTH";
+            case BluetoothGatt.GATT_FAILURE:
+                return "GATT_FAILURE";
+            default:
+                return "unknown state:" + status;
+        }
+    }
+
+    public static String gattToString(BluetoothGatt gatt) {
+        if (gatt == null){
+            return "null";
+        }
+        return "gatt:" + gatt.getDevice().getName();
     }
 
 }
