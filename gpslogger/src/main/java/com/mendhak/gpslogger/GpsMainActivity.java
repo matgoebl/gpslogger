@@ -852,6 +852,10 @@ public class GpsMainActivity extends Activity
                 OnSetAnnotation();
             }
 
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            boolean startBTLE = prefs.getBoolean("btle_activate", false);
+            if (startBTLE)
+                loggingService.StartBTLE();
         }
     };
 
@@ -885,7 +889,11 @@ public class GpsMainActivity extends Activity
             }
         }
 
-        if (!Session.isStarted()) {
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(getApplicationContext());
+        boolean startBTLE = prefs.getBoolean("btle_activate", false);
+
+        if (!Session.isStarted() && !startBTLE) {
             tracer.debug("Stopping the service");
             //serviceIntent = new Intent(this, GpsLoggingService.class);
             try {
