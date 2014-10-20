@@ -1000,17 +1000,20 @@ public class GpsLoggingService extends Service implements IActionListener {
      * BTLE activation
      */
 
-    protected void StartBTLE() {
+    BluetoothAdapter adapter;
+    BluetoothDevice device;
+
+    void StartBTLE() {
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(getApplicationContext());
         String btleDevice = prefs.getString("btle_device", "no device yet");
         tracer.debug("Starting BTLE waiting for '"+btleDevice+"'.");
-        final BluetoothAdapter adapter = bluetooth.getAdapter();
-        final BluetoothDevice device = adapter.getRemoteDevice(btleDevice);
+        adapter = bluetooth.getAdapter();
+        device = adapter.getRemoteDevice(btleDevice);
         device.connectGatt(getApplicationContext(), true, bluetoothGattCallback);
     }
-    protected void StopBTLE() {
 
+    protected void StopBTLE() {
     }
 
 
@@ -1034,19 +1037,25 @@ public class GpsLoggingService extends Service implements IActionListener {
             super.onConnectionStateChange(gatt, status, state);
             tracer.debug("onConnectionStateChange gatt:" + gattToString(gatt) + " status:" + statusToString(status) + " state:" + connectionStateToString(state));
 
-            //updateConnectionStateDisplay(state);
-
             switch (state) {
                 case BluetoothGatt.STATE_CONNECTED: {
-                    //showText("STATE_CONNECTED", Style.INFO);
-                    //setConnectedGatt(gatt);
+                    //SetStatus("Connected to " + gattToString(gatt));
+                    connectedGatt = gatt;
                     gatt.discoverServices();
+
+                    Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
+                    serviceIntent.putExtra("immediatestart", true);
+                    getApplicationContext().startService(serviceIntent);
                     break;
                 }
-                case BluetoothGatt.STATE_DISCONNECTED:
-                    //showText("STATE_DISCONNECTED", Style.ALERT);
+                case BluetoothGatt.STATE_DISCONNECTED: {
+//                        SetStatus("Disconnected from " + gattToString(gatt));
+                    Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
+                    serviceIntent.putExtra("immediatestop", true);
+                    getApplicationContext().startService(serviceIntent);
+                }
                 case BluetoothGatt.GATT_FAILURE: {
-                    //setConnectedGatt(null);
+                    connectedGatt = null;
                     break;
                 }
             }
@@ -1098,12 +1107,9 @@ public class GpsLoggingService extends Service implements IActionListener {
                 lastWheelCount = cumulativeWheelRevolutions;
             }
 
-//            runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
+            double distanceinKilometers = cumulativeWheelRevolutions * wheelSize;
+            tracer.debug("distance:" + distanceinKilometers);
 //                    distanceLabel.setText( String.format( "Distance: %.2f", cumulativeWheelRevolutions * wheelSize));
-//                }
-//            });
 
             long numberOfWheelRevolutions = cumulativeWheelRevolutions - lastWheelCount;
 
@@ -1167,7 +1173,7 @@ public class GpsLoggingService extends Service implements IActionListener {
         if (gatt == null){
             return "null";
         }
-        return "gatt:" + gatt.getDevice().getName();
+        return gatt.getDevice().getName();
     }
 
 }

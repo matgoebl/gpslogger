@@ -176,16 +176,6 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
             return true;
         }
 
-        if (preference.getKey().equals("btle_activate")) {
-            boolean startBTLE = prefs.getBoolean("btle_activate", false);
-            tracer.info("Did the user ask for BTLE activation? - "
-                    + String.valueOf(startBTLE));
-            Intent serviceIntent = new Intent(getApplicationContext(), GpsLoggingService.class);
-            serviceIntent.putExtra(startBTLE?"startbtle":"stopbtle", true);
-            getApplicationContext().startService(serviceIntent);
-            return true;
-        }
-
         if (preference.getKey().equals("btle_scan")) {
             final Preference btleScan = (Preference) findPreference("btle_scan");
             btleScan.setSummary("Scanning...");
