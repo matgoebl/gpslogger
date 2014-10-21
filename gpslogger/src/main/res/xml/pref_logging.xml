@@ -151,9 +151,9 @@
             android:title="@string/wheel_size_title"
             android:summary="@string/wheel_size_summary"
             android:dialogTitle="@string/wheel_size_dialog_title"
-            android:numeric="integer"
-            android:maxLength="4"
-            android:hint="@string/wheel_size_hint"/>
+            android:numeric="decimal"
+            android:maxLength="10"
+            android:hint="2.17"/>
         <Preference
             android:key="btle_scan"
             android:title="@string/btle_scan_title"
