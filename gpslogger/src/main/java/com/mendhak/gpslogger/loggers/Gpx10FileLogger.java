@@ -282,6 +282,9 @@ class Gpx10WriteHandler implements Runnable {
             String geoidheight = loc.getExtras().getString("GEOIDHEIGHT");
             String ageofdgpsdata = loc.getExtras().getString("AGEOFDGPSDATA");
             String dgpsid = loc.getExtras().getString("DGPSID");
+            double bicyclingspeed = loc.getExtras().getDouble("bicyclingspeed",0);
+            double bicyclingdistance = loc.getExtras().getDouble("bicyclingdistance",0);
+            double bicyclingcadence = loc.getExtras().getDouble("bicyclingcadence",0);
 
             if (!Utilities.IsNullOrEmpty(hdop)) {
                 track.append("<hdop>").append(hdop).append("</hdop>");
@@ -305,6 +308,14 @@ class Gpx10WriteHandler implements Runnable {
 
             if (!Utilities.IsNullOrEmpty(dgpsid)) {
                 track.append("<dgpsid>").append(dgpsid).append("</dgpsid>");
+            }
+
+            if (bicyclingdistance>0) {
+                track.append("<!-- <extensions>");
+                track.append("<bicycling:speed>").append(String.format("%.1f",bicyclingspeed)).append("</bicycling:speed>");
+                track.append("<bicycling:distance>").append(String.format("%.3f",bicyclingdistance)).append("</bicycling:distance>");
+                track.append("<bicycling:cadence>").append(String.format("%.0f",bicyclingcadence)).append("</bicycling:cadence>");
+                track.append("</extensions> -->");
             }
         }
 
