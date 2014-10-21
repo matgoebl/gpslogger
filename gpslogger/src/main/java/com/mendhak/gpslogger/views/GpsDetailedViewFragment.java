@@ -110,6 +110,11 @@ public class GpsDetailedViewFragment extends GenericViewFragment {
 
     @Override
     public void SetLocation(Location locationInfo) {
+        if (Session.getBicyclingDistance()>0) {
+            TextView txtBicycling = (TextView) rootView.findViewById(R.id.detailedview_bicycling_text);
+            txtBicycling.setText(String.format( "%.1f km/h (%.3f km)\n%.1f rpm  [%d db]", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence(), Session.getBicyclingRssi()));
+        }
+
         if (locationInfo == null) {
             return;
         }
@@ -433,6 +438,7 @@ public class GpsDetailedViewFragment extends GenericViewFragment {
         TextView txtAccuracy = (TextView) rootView.findViewById(R.id.detailedview_accuracy_text);
         TextView txtTravelled = (TextView) rootView.findViewById(R.id.detailedview_travelled_text);
         TextView txtTime = (TextView) rootView.findViewById(R.id.detailedview_duration_text);
+        TextView txtBicycling = (TextView) rootView.findViewById(R.id.detailedview_bicycling_text);
 
         tvLatitude.setText("");
         tvLongitude.setText("");
@@ -444,6 +450,7 @@ public class GpsDetailedViewFragment extends GenericViewFragment {
         txtDirection.setText("");
         txtTravelled.setText("");
         txtTime.setText("");
+        txtBicycling.setText("");
 
 
     }

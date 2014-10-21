@@ -155,14 +155,37 @@ public class GpsLoggingService extends Service implements IActionListener {
                 boolean getNextPoint = bundle.getBoolean("getnextpoint");
                 boolean startBTLE = bundle.getBoolean("startbtle");
                 boolean stopBTLE = bundle.getBoolean("stopbtle");
+                boolean updateBicycling = bundle.getBoolean("updatebicycling");
+                boolean setstatus = bundle.getBoolean("setstatus");
 
                 tracer.debug("stopRightNow - " + String.valueOf(stopRightNow) + ", startRightNow - "
                         + String.valueOf(startRightNow) + ", sendEmailNow - " + String.valueOf(sendEmailNow)
                         + ", getNextPoint - " + String.valueOf(getNextPoint)
                         + ", startBTLE - " + String.valueOf(startBTLE) + ", stopBTLE - " + String.valueOf(stopBTLE));
 
+                if (updateBicycling) {
+                    tracer.info("Intent received - Update Bicycling Now");
+                    if (bundle.containsKey("speed")) Session.setBicyclingSpeed(bundle.getDouble("speed",0));
+                    if (bundle.containsKey("distance")) Session.setBicyclingDistance(bundle.getDouble("distance",0));
+                    if (bundle.containsKey("cadence")) Session.setBicyclingCadence(bundle.getDouble("cadence",0));
+                    if (bundle.containsKey("rssi")) Session.setBicyclingRssi(bundle.getInt("rssi",0));
+                    if (IsMainFormVisible()) {
+                        mainServiceClient.OnLocationUpdate(null);
+                    }
+                }
+
+                if (setstatus) {
+                    tracer.info("Intent received - Set Status Now");
+                    String status = bundle.getString("status","");
+                    SetStatus(status);
+                }
+
                 if (startRightNow) {
                     tracer.info("Intent received - Start Logging Now");
+                    String btlestatus = bundle.getString("btlestatus","");
+                    if (btlestatus.length() > 0) {
+                        SetStatus(btlestatus);
+                    }
                     StartLogging();
                 }
 
@@ -844,6 +867,14 @@ public class GpsLoggingService extends Service implements IActionListener {
             tracer.debug("Logging passive location to file");
         }
 
+        if (Session.getBicyclingDistance()>0) {
+            Bundle locExtras = loc.getExtras();
+            locExtras.putDouble("bicyclingspeed",Session.getBicyclingSpeed());
+            locExtras.putDouble("bicyclingdistance",Session.getBicyclingDistance());
+            locExtras.putDouble("bicyclingcadence",Session.getBicyclingCadence());
+            loc.setExtras(locExtras);
+        }
+
         WriteToFile(loc);
         GetPreferences();
         StopManagerAndResetAlarm();
@@ -1004,15 +1035,19 @@ public class GpsLoggingService extends Service implements IActionListener {
 
     BluetoothAdapter adapter;
     BluetoothDevice device;
+    private final double wheelSizeDefault = 2.17;
+    double wheelSize = wheelSizeDefault;
 
     void StartBTLE() {
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(getApplicationContext());
+        wheelSize = Double.parseDouble(prefs.getString("wheel_size","0"));
+        if (wheelSize==0) wheelSize=wheelSizeDefault;
         String btleDevice = prefs.getString("btle_device", "no device yet");
         tracer.debug("Starting BTLE waiting for '"+btleDevice+"'.");
         adapter = bluetooth.getAdapter();
         device = adapter.getRemoteDevice(btleDevice);
-        device.connectGatt(getApplicationContext(), true, bluetoothGattCallback);
+        device.connectGatt(getBaseContext(), true, bluetoothGattCallback);
     }
 
     protected void StopBTLE() {
@@ -1041,17 +1076,16 @@ public class GpsLoggingService extends Service implements IActionListener {
 
             switch (state) {
                 case BluetoothGatt.STATE_CONNECTED: {
-                    //SetStatus("Connected to " + gattToString(gatt));
                     connectedGatt = gatt;
                     gatt.discoverServices();
 
                     Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
                     serviceIntent.putExtra("immediatestart", true);
+                    serviceIntent.putExtra("btlestatus", gattToString(gatt));
                     getApplicationContext().startService(serviceIntent);
                     break;
                 }
                 case BluetoothGatt.STATE_DISCONNECTED: {
-//                        SetStatus("Disconnected from " + gattToString(gatt));
                     Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
                     serviceIntent.putExtra("immediatestop", true);
                     getApplicationContext().startService(serviceIntent);
@@ -1067,7 +1101,11 @@ public class GpsLoggingService extends Service implements IActionListener {
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             super.onReadRemoteRssi(gatt, rssi, status);
             tracer.debug("onReadRemoteRssi rssi:" + rssi);
-            //updateRssiDisplay(rssi);
+
+            Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
+            serviceIntent.putExtra("updatebicycling", true);
+            serviceIntent.putExtra("rssi", rssi);
+            getApplicationContext().startService(serviceIntent);
         }
 
         @Override
@@ -1086,7 +1124,8 @@ public class GpsLoggingService extends Service implements IActionListener {
 
         double lastWheelTime = NOT_SET;
         long lastWheelCount = NOT_SET;
-        double wheelSize = 2.17;
+        double lastCrankTime = NOT_SET;
+        long lastCrankCount = NOT_SET;
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
@@ -1095,10 +1134,11 @@ public class GpsLoggingService extends Service implements IActionListener {
 
             final long cumulativeWheelRevolutions       = (value[1] & 0xff) | ((value[2] & 0xff) << 8) | ((value[3] & 0xff) << 16) | ((value[4] & 0xff) << 24);
             final int lastWheelEventReadValue           = (value[5] & 0xff) | ((value[6] & 0xff) << 8);
-            final int cumulativeCrankRevolutions        = (value[7] & 0xff) | ((value[8] & 0xff) << 8);
+            final long cumulativeCrankRevolutions        = (value[7] & 0xff) | ((value[8] & 0xff) << 8);
             final int lastCrankEventReadValue           = (value[9] & 0xff) | ((value[10] & 0xff) << 8);
 
             double lastWheelEventTime = lastWheelEventReadValue / 1024.0;
+            double lastCrankEventTime = lastCrankEventReadValue / 1024.0;
 
             tracer.debug("onCharacteristicChanged " + cumulativeWheelRevolutions + ":" + lastWheelEventReadValue + ":" + cumulativeCrankRevolutions + ":" + lastCrankEventReadValue);
 
@@ -1109,9 +1149,22 @@ public class GpsLoggingService extends Service implements IActionListener {
                 lastWheelCount = cumulativeWheelRevolutions;
             }
 
-            double distanceinKilometers = cumulativeWheelRevolutions * wheelSize;
+            if (lastCrankTime == NOT_SET){
+                lastCrankTime = lastCrankEventTime;
+            }
+            if (lastCrankCount == NOT_SET){
+                lastCrankCount = cumulativeCrankRevolutions;
+            }
+
+            Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
+            serviceIntent.putExtra("updatebicycling", true);
+            //serviceIntent.putExtra("status", String.format( "Speed: %.1f Dist: %.3f C: %d", speedInKilometersPerHour, distanceinKilometers, numberOfCrankRevolutions));
+
+
+            double distanceinKilometers = cumulativeWheelRevolutions * wheelSize / 1000;
             tracer.debug("distance:" + distanceinKilometers);
-//                    distanceLabel.setText( String.format( "Distance: %.2f", cumulativeWheelRevolutions * wheelSize));
+            serviceIntent.putExtra("distance", distanceinKilometers);
+
 
             long numberOfWheelRevolutions = cumulativeWheelRevolutions - lastWheelCount;
 
@@ -1121,12 +1174,31 @@ public class GpsLoggingService extends Service implements IActionListener {
                 double speedinMetersPerSeconds = (wheelSize * numberOfWheelRevolutions) / timeDiff;
                 double speedInKilometersPerHour = speedinMetersPerSeconds * 3.6;
 
-//                showSpeed((int) speedInKilometersPerHour);
                 tracer.debug("speed:" + speedInKilometersPerHour);
+
+                serviceIntent.putExtra("speed", speedInKilometersPerHour);
 
                 lastWheelCount = cumulativeWheelRevolutions;
                 lastWheelTime = lastWheelEventTime;
             }
+
+
+            long numberOfCrankRevolutions = cumulativeCrankRevolutions - lastCrankCount;
+
+            if (lastCrankTime  != lastCrankEventTime && numberOfCrankRevolutions > 0){
+                double timeDiff = lastCrankEventTime - lastCrankTime;
+
+                double cadenceinRevolutionsPerMinute = numberOfCrankRevolutions * 60 / timeDiff;
+
+                tracer.debug("cadence:" + cadenceinRevolutionsPerMinute);
+
+                serviceIntent.putExtra("cadence", cadenceinRevolutionsPerMinute);
+
+                lastCrankCount = cumulativeCrankRevolutions;
+                lastCrankTime = lastCrankEventTime;
+            }
+
+            getApplicationContext().startService(serviceIntent);
 
             gatt.readRemoteRssi();
         }

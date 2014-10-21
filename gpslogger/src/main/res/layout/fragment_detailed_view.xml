@@ -354,8 +354,33 @@
                         android:editable="false"/>
                 </LinearLayout>
 
+                <LinearLayout
+                    android:layout_margin="5dp"
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
 
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="@integer/detailedview_label_weight"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:text="@string/txt_bicycling"
+                        android:id="@+id/detailedview_bicycling_label"/>
+
+                    <EditText
+                        android:layout_width="0dp"
+                        android:layout_weight="@integer/detailedview_text_weight"
+                        android:layout_height="wrap_content"
+                        android:minWidth="@dimen/view_text_width"
+                        android:id="@+id/detailedview_bicycling_text"
+                        android:text=""
+                        android:selectAllOnFocus="true"
+                        android:textIsSelectable="true"
+                        android:editable="false"/>
+                </LinearLayout>
             </LinearLayout>
+
         </RelativeLayout>
 
         <RelativeLayout

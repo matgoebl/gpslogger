@@ -449,6 +449,7 @@
     <string name="new_file_prefix_serial_title">Prefix the device serial number to the file name</string>
     <string name="new_file_prefix_serial_summary">This is the serial number found in your phone status </string>
     <string name="txt_travel_duration">Duration:</string>
+    <string name="txt_bicycling">Bicycling:</string>
 
     <string name="menu_onepoint">Log one point</string>
 
@@ -488,7 +489,6 @@
     <string name="wheel_size_title">Wheel size</string>
     <string name="wheel_size_summary">Set wheel size.</string>
     <string name="wheel_size_dialog_title">Set wheel size</string>
-    <string name="wheel_size_hint">1234</string>
     <string name="btle_scan_title">Start Scan</string>
     <string name="btle_scan_summary">no device yet</string>
 </resources>

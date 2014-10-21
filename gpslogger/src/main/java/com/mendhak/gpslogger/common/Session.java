@@ -51,6 +51,11 @@ public class Session extends Application {
     private static int retryTimeout = 0;
     private static boolean waitingForLocation;
 
+    private static double BicyclingSpeed = 0;
+    private static double BicyclingDistance = 0;
+    private static double BicyclingCadence = 0;
+    private static int BicyclingRssi = 0;
+
     public static boolean isSinglePointMode() {
         return isSinglePointMode;
     }
@@ -341,4 +346,26 @@ public class Session extends Application {
     public static boolean isWaitingForLocation() {
         return waitingForLocation;
     }
+
+
+    public static double getBicyclingSpeed() {
+        return BicyclingSpeed;
+    }
+    public static void setBicyclingSpeed(double newBicyclingSpeed) { BicyclingSpeed = newBicyclingSpeed; }
+
+    public static double getBicyclingDistance() {
+        return BicyclingDistance;
+    }
+    public static void setBicyclingDistance(double newBicyclingDistance) { BicyclingDistance = newBicyclingDistance; }
+
+    public static double getBicyclingCadence() {
+        return BicyclingCadence;
+    }
+    public static void setBicyclingCadence(double newBicyclingCadence) { BicyclingCadence = newBicyclingCadence; }
+
+    public static int getBicyclingRssi() {
+        return BicyclingRssi;
+    }
+    public static void setBicyclingRssi(int newBicyclingRssi) { BicyclingRssi = newBicyclingRssi; }
+
 }
