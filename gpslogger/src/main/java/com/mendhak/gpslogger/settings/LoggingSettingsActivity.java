@@ -127,7 +127,7 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
         chkLog_opengts.setOnPreferenceClickListener(this);
 
         Preference btleActivate = (Preference) findPreference("btle_activate");
-        btleActivate.setOnPreferenceClickListener(this);
+        btleActivate.setOnPreferenceChangeListener(this);
 
         Preference btleScan = (Preference) findPreference("btle_scan");
         btleScan.setOnPreferenceClickListener(this);
@@ -279,6 +279,19 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
             prefSerialPrefix.setEnabled(!newValue.equals("custom"));
 
 
+            return true;
+        }
+
+        if (preference.getKey().equals("btle_activate")) {
+            Intent serviceIntent = new Intent(getApplicationContext(), GpsLoggingService.class);
+            if(newValue.equals(true)) {
+                tracer.info("Starting BTLE on preference change");
+                serviceIntent.putExtra("startbtle", true);
+            } else {
+                tracer.info("Stopping BTLE on preference change");
+                serviceIntent.putExtra("stopbtle", true);
+            }
+            getApplicationContext().startService(serviceIntent);
             return true;
         }
         return false;

@@ -72,6 +72,11 @@ public class GpsBigViewFragment extends GenericViewFragment implements View.OnTo
     public void SetLocation(Location locationInfo) {
         TextView txtLat = (TextView) rootView.findViewById(R.id.bigview_text_lat);
         TextView txtLong = (TextView) rootView.findViewById(R.id.bigview_text_long);
+        TextView txtBicycling = (TextView) rootView.findViewById(R.id.bigview_text_bicycling);
+
+        if (Session.getBicyclingDistance()>0) {
+            txtBicycling.setText(String.format( "%.1f km/h\n%.3f km\n%.0f rpm", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence()));
+        }
 
         if (locationInfo != null) {
             NumberFormat nf = NumberFormat.getInstance();
@@ -96,8 +101,10 @@ public class GpsBigViewFragment extends GenericViewFragment implements View.OnTo
     public void SetLoggingStarted() {
         TextView txtLat = (TextView) rootView.findViewById(R.id.bigview_text_lat);
         TextView txtLong = (TextView) rootView.findViewById(R.id.bigview_text_long);
+        TextView txtBicycling = (TextView) rootView.findViewById(R.id.bigview_text_bicycling);
         txtLat.setText("");
         txtLong.setText("");
+        txtBicycling.setText("");
     }
 
     @Override

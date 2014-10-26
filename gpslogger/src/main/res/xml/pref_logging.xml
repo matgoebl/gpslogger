@@ -158,6 +158,12 @@
             android:key="btle_scan"
             android:title="@string/btle_scan_title"
             android:summary="@string/btle_scan_summary"/>
+        <CheckBoxPreference
+            android:key="btle_beep"
+            android:title="@string/btle_beep_title"
+            android:summary="@string/btle_beep_summary"
+            android:defaultValue="false"
+            />
     </PreferenceCategory>
 
 </PreferenceScreen>

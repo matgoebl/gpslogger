@@ -852,11 +852,6 @@ public class GpsMainActivity extends Activity
             if (Session.hasDescription()) {
                 OnSetAnnotation();
             }
-
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            boolean startBTLE = prefs.getBoolean("btle_activate", false);
-            if (startBTLE)
-                loggingService.StartBTLE();
         }
     };
 
