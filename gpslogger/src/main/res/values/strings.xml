@@ -485,6 +485,8 @@
     <string name="pref_bicycle">Bicycling (using BTLE CSCP sensor)</string>
     <string name="btle_activate_title">Bicycle Auto-Activation</string>
     <string name="btle_activate_summary">Permanently scan for a BTLE CSCP bicycle sensor. Start logging on connect, stop logging on disconnect.</string>
+    <string name="btle_beep_title">Beep on BTLE signals</string>
+    <string name="btle_beep_summary">Beep on every signal to help mounting the sensor.</string>
 
     <string name="wheel_size_title">Wheel size</string>
     <string name="wheel_size_summary">Set wheel size.</string>

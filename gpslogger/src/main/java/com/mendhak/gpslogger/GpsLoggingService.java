@@ -38,6 +38,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationManager;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -215,6 +217,7 @@ public class GpsLoggingService extends Service implements IActionListener {
                 if (stopBTLE) {
                     tracer.info("Intent received - Stop BTLE now");
                     StopBTLE();
+                    StopLogging();
                 }
 
                 String setNextPointDescription = bundle.getString("setnextpointdescription");
@@ -1037,20 +1040,32 @@ public class GpsLoggingService extends Service implements IActionListener {
     BluetoothDevice device;
     private final double wheelSizeDefault = 2.17;
     double wheelSize = wheelSizeDefault;
+    boolean beepBTLE = false;
 
     void StartBTLE() {
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(getApplicationContext());
         wheelSize = Double.parseDouble(prefs.getString("wheel_size","0"));
         if (wheelSize==0) wheelSize=wheelSizeDefault;
+        beepBTLE = prefs.getBoolean("btle_beep", false);
         String btleDevice = prefs.getString("btle_device", "no device yet");
         tracer.debug("Starting BTLE waiting for '"+btleDevice+"'.");
+        if (connectedGatt != null) {
+            connectedGatt.disconnect();
+            connectedGatt.close();
+        }
         adapter = bluetooth.getAdapter();
         device = adapter.getRemoteDevice(btleDevice);
         device.connectGatt(getBaseContext(), true, bluetoothGattCallback);
     }
 
     protected void StopBTLE() {
+        tracer.debug("Stopping BTLE.");
+        if (connectedGatt != null) {
+            connectedGatt.disconnect();
+            connectedGatt.close();
+        }
+        connectedGatt = null;
     }
 
 
@@ -1059,7 +1074,7 @@ public class GpsLoggingService extends Service implements IActionListener {
     private static final UUID CSC_CHARACTERISTIC_UUID = UUID.fromString("00002a5b-0000-1000-8000-00805f9b34fb");
     private static final UUID BTLE_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
-    private BluetoothGatt connectedGatt;
+    private BluetoothGatt connectedGatt = null;
     private boolean connectingToGatt;
 
     private final Object connectingToGattMonitor = new Object();
@@ -1180,6 +1195,11 @@ public class GpsLoggingService extends Service implements IActionListener {
 
                 lastWheelCount = cumulativeWheelRevolutions;
                 lastWheelTime = lastWheelEventTime;
+
+                if (beepBTLE) {
+                    ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+                    toneG.startTone(ToneGenerator.TONE_DTMF_1, 200);
+                }
             }
 
 
@@ -1196,6 +1216,11 @@ public class GpsLoggingService extends Service implements IActionListener {
 
                 lastCrankCount = cumulativeCrankRevolutions;
                 lastCrankTime = lastCrankEventTime;
+
+                if (beepBTLE) {
+                    ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+                    toneG.startTone(ToneGenerator.TONE_DTMF_9, 200);
+                }
             }
 
             getApplicationContext().startService(serviceIntent);
