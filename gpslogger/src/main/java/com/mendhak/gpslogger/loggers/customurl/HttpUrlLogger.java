@@ -22,6 +22,7 @@ import com.mendhak.gpslogger.common.RejectionHandler;
 import com.mendhak.gpslogger.common.Session;
 import com.mendhak.gpslogger.common.Utilities;
 import com.mendhak.gpslogger.loggers.IFileLogger;
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.LoggerFactory;
 
 import java.net.HttpURLConnection;
@@ -122,6 +123,11 @@ class HttpUrlLogHandler implements Runnable {
 
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
+            String userInfo = url.getUserInfo();
+            if(userInfo != null) {
+                String basicAuth = "Basic " + new String(new Base64().encode(userInfo.getBytes()));
+                conn.setRequestProperty ("Authorization", basicAuth);
+            }
 
             Scanner s;
             if(conn.getResponseCode() != 200){
