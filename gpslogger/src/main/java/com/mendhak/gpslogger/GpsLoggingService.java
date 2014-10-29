@@ -45,6 +45,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
@@ -466,6 +467,13 @@ public class GpsLoggingService extends Service implements IActionListener {
         StartPassiveManager();
         StartGpsManager();
 
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(getApplicationContext());
+        if (prefs.getBoolean("vibrate", false)) {
+            Vibrator v = (Vibrator) getSystemService(getApplicationContext().VIBRATOR_SERVICE);
+            long[] pattern = {0, 1000};
+            v.vibrate(pattern, -1);
+        }
     }
 
     /**
@@ -498,6 +506,14 @@ public class GpsLoggingService extends Service implements IActionListener {
         StopGpsManager();
         StopPassiveManager();
         NotifyClientStopped();
+
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(getApplicationContext());
+        if (prefs.getBoolean("vibrate", false)) {
+            Vibrator v = (Vibrator) getSystemService(getApplicationContext().VIBRATOR_SERVICE);
+            long[] pattern = {0, 250, 500, 250};
+            v.vibrate(pattern, -1);
+        }
     }
 
     /**

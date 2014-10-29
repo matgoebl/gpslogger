@@ -137,6 +137,12 @@
             android:defaultValue="0"
             android:hint="@string/retry_time_hint"/>
 
+        <CheckBoxPreference
+            android:key="vibrate"
+            android:title="@string/vibrate_title"
+            android:summary="@string/vibrate_summary"
+            android:defaultValue="false"
+            />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_bicycle">

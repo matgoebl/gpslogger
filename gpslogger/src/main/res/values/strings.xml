@@ -463,6 +463,8 @@
     <string name="pref_filedetails_title">File and Folder Details</string>
     <string name="absolute_timeout_title">Absolute Timeout</string>
     <string name="absolute_timeout_summary">Number of seconds after which the app gives up on trying to acquire a fix, regardless of other settings. This is especially useful for when you are inside buildings to prevent the GPS from draining battery.  Set to 0 for no timeout.</string>
+    <string name="vibrate_title">Vibrate</string>
+    <string name="vibrate_summary">Vibrate on start/stop of logging.</string>
     <string name="txt_latitude_short">Lat</string>
     <string name="txt_longitude_short">Lon</string>
     <string name="log_nmea_title">Log to NMEA</string>
