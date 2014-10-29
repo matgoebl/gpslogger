@@ -123,6 +123,7 @@ class HttpUrlLogHandler implements Runnable {
             logUrl = logUrl.replaceAll("(?i)%batt", String.valueOf(batteryLevel));
             logUrl = logUrl.replaceAll("(?i)%aid", String.valueOf(androidId));
             logUrl = logUrl.replaceAll("(?i)%ser", String.valueOf(Utilities.GetBuildSerial()));
+            logUrl = logUrl.replaceAll("(?i)%bic", String.valueOf(Session.getBicyclingSpeed()) + "," + String.valueOf(Session.getBicyclingDistance()) + "," + String.valueOf( Session.getBicyclingCadence())); //String.format( "%.1f,%.3f,%.0f", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence()));
 
 
 
