@@ -83,6 +83,8 @@ class HttpUrlLogHandler implements Runnable {
     private String logUrl;
     private float batteryLevel;
     private String androidId;
+    private long lastLogTimeStamp;
+    private static final long minLogInterval = 30;
 
     public HttpUrlLogHandler(String customLoggingUrl, Location loc, String annotation, int satellites, float batteryLevel, String androidId) {
         this.loc = loc;
@@ -91,10 +93,16 @@ class HttpUrlLogHandler implements Runnable {
         this.logUrl = customLoggingUrl;
         this.batteryLevel = batteryLevel;
         this.androidId = androidId;
+        lastLogTimeStamp = 0;
     }
 
     @Override
     public void run() {
+        long timeStamp = new java.util.Date().getTime();
+        if (lastLogTimeStamp > 0 && timeStamp - lastLogTimeStamp < minLogInterval * 1000) {
+            return;
+        }
+        lastLogTimeStamp = timeStamp;
         try {
             tracer.debug("Writing HTTP URL Logger");
             HttpURLConnection conn = null;
