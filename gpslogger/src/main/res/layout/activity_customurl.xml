@@ -23,6 +23,19 @@
             android:text="@string/save"/>
         </RelativeLayout>
 
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/log_customurl_interval"
+        android:id="@+id/textView"
+        android:textStyle="bold"/>
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/customUrlInterval"
+        android:text="0"
+        android:inputType="number"/>
 
     <EditText
             android:layout_width="fill_parent"

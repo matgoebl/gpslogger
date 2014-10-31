@@ -143,6 +143,7 @@ public class Utilities {
 
         AppSettings.setLogToCustomUrl(prefs.getBoolean("log_customurl_enabled", false));
         AppSettings.setCustomLoggingUrl(prefs.getString("log_customurl_url", ""));
+        AppSettings.setCustomLoggingInterval(Integer.parseInt(prefs.getString("log_customurl_interval", "0")));
 
         AppSettings.setLogToOpenGTS(prefs.getBoolean("log_opengts", false));
 

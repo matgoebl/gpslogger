@@ -43,12 +43,17 @@ public class HttpUrlLogger implements IFileLogger {
     private final String name = "URL";
     private final int satellites;
     private final String customLoggingUrl;
+    private final int minLogInterval;
+    private final long startTimeStamp;
     private final float batteryLevel;
     private final String androidId;
+    private static long lastLogTimeStamp = 0;
 
-    public HttpUrlLogger(String customLoggingUrl, int satellites, float batteryLevel, String androidId) {
+    public HttpUrlLogger(String customLoggingUrl, int minLogInterval, long startTimeStamp, int satellites, float batteryLevel, String androidId) {
         this.satellites = satellites;
         this.customLoggingUrl = customLoggingUrl;
+        this.minLogInterval = minLogInterval;
+        this.startTimeStamp = startTimeStamp;
         this.batteryLevel = batteryLevel;
         this.androidId = androidId;
     }
@@ -63,7 +68,12 @@ public class HttpUrlLogger implements IFileLogger {
 
     @Override
     public void Annotate(String description, Location loc) throws Exception {
-        HttpUrlLogHandler writeHandler = new HttpUrlLogHandler(customLoggingUrl, loc, description, satellites, batteryLevel, androidId);
+        long timeStamp = System.currentTimeMillis();
+        if (lastLogTimeStamp > 0 && timeStamp - lastLogTimeStamp < minLogInterval * 1000) {
+            return;
+        }
+        lastLogTimeStamp = timeStamp;
+        HttpUrlLogHandler writeHandler = new HttpUrlLogHandler(customLoggingUrl, startTimeStamp, loc, description, satellites, batteryLevel, androidId);
         tracer.debug(String.format("There are currently %s tasks waiting on the GPX10 EXECUTOR.", EXECUTOR.getQueue().size()));
         EXECUTOR.execute(writeHandler);
     }
@@ -77,6 +87,7 @@ public class HttpUrlLogger implements IFileLogger {
 class HttpUrlLogHandler implements Runnable {
 
     private static final org.slf4j.Logger tracer = LoggerFactory.getLogger(HttpUrlLogHandler.class.getSimpleName());
+    private long startTimeStamp;
     private Location loc;
     private String annotation;
     private int satellites;
@@ -84,7 +95,8 @@ class HttpUrlLogHandler implements Runnable {
     private float batteryLevel;
     private String androidId;
 
-    public HttpUrlLogHandler(String customLoggingUrl, Location loc, String annotation, int satellites, float batteryLevel, String androidId) {
+    public HttpUrlLogHandler(String customLoggingUrl, long startTimeStamp, Location loc, String annotation, int satellites, float batteryLevel, String androidId) {
+        this.startTimeStamp = startTimeStamp;
         this.loc = loc;
         this.annotation = annotation;
         this.satellites = satellites;
@@ -116,6 +128,7 @@ class HttpUrlLogHandler implements Runnable {
             logUrl = logUrl.replaceAll("(?i)%aid", String.valueOf(androidId));
             logUrl = logUrl.replaceAll("(?i)%ser", String.valueOf(Utilities.GetBuildSerial()));
             logUrl = logUrl.replaceAll("(?i)%bic", String.valueOf(Session.getBicyclingSpeed()) + "," + String.valueOf(Session.getBicyclingDistance()) + "," + String.valueOf( Session.getBicyclingCadence())); //String.format( "%.1f,%.3f,%.0f", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence()));
+            logUrl = logUrl.replaceAll("(?i)%ses", String.valueOf(startTimeStamp));
 
 
 

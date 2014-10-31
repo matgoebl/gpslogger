@@ -45,6 +45,7 @@ public class CustomUrlLoggerActivity extends Activity implements View.OnClickLis
 
 
         EditText urlText = (EditText) findViewById(R.id.customUrlText);
+        EditText intervalText = (EditText) findViewById(R.id.customUrlInterval);
         CheckBox urlEnabled = (CheckBox) findViewById(R.id.customUrlEnabled);
 
         Button btnSave = (Button) findViewById(R.id.customurl_btnSave);
@@ -60,6 +61,8 @@ public class CustomUrlLoggerActivity extends Activity implements View.OnClickLis
         if (customUrl.length() > 0) {
             urlText.setText(customUrl);
         }
+
+        intervalText.setText(prefs.getString("log_customurl_interval","0"));
 
         TextView legendView = (TextView) findViewById(R.id.textViewLegend);
 
@@ -78,12 +81,14 @@ public class CustomUrlLoggerActivity extends Activity implements View.OnClickLis
 
         tracer.debug("Saving values");
         EditText urlText = (EditText) findViewById(R.id.customUrlText);
+        EditText intervalText = (EditText) findViewById(R.id.customUrlInterval);
         CheckBox urlEnabled = (CheckBox) findViewById(R.id.customUrlEnabled);
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean("log_customurl_enabled", urlEnabled.isChecked());
         editor.putString("log_customurl_url", urlText.getText().toString());
+        editor.putString("log_customurl_interval", intervalText.getText().toString());
         editor.commit();
 
         Toast.makeText(getApplicationContext(), getString(R.string.values_saved), Toast.LENGTH_LONG).show();

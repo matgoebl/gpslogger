@@ -34,6 +34,7 @@ public class AppSettings extends Application {
     private static boolean logToNmea;
     private static boolean logToCustomUrl;
     private static String customLoggingUrl;
+    private static int customLoggingInterval;
     private static int minimumSeconds;
     private static boolean keepFix;
     private static int retryInterval;
@@ -525,6 +526,14 @@ public class AppSettings extends Application {
 
     public static void setCustomLoggingUrl(String customLoggingUrl) {
         AppSettings.customLoggingUrl = customLoggingUrl;
+    }
+
+    public static int getCustomLoggingInterval() {
+        return customLoggingInterval;
+    }
+
+    public static void setCustomLoggingInterval(int customLoggingInterval) {
+        AppSettings.customLoggingInterval = customLoggingInterval;
     }
 
     public static String getGpsLoggerFolder() {
