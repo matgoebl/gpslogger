@@ -1052,9 +1052,12 @@ public class GpsLoggingService extends Service implements IActionListener {
 
     BluetoothAdapter adapter;
     BluetoothDevice device;
+    private final double revolutionTimeout = 5.0;
     private final double wheelSizeDefault = 2.17;
     double wheelSize = wheelSizeDefault;
     boolean beepBTLE = false;
+    private long lastBicyclingSpeedTimeStamp = 0;
+    private long lastBicyclingCadenceTimeStamp = 0;
 
     void StartBTLE() {
         SharedPreferences prefs = PreferenceManager
@@ -1117,6 +1120,9 @@ public class GpsLoggingService extends Service implements IActionListener {
                 case BluetoothGatt.STATE_DISCONNECTED: {
                     Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
                     serviceIntent.putExtra("immediatestop", true);
+                    serviceIntent.putExtra("updatebicycling", true);
+                    serviceIntent.putExtra("speed", 0.0);
+                    serviceIntent.putExtra("cadence", 0.0);
                     getApplicationContext().startService(serviceIntent);
                 }
                 case BluetoothGatt.GATT_FAILURE: {
@@ -1168,6 +1174,7 @@ public class GpsLoggingService extends Service implements IActionListener {
 
             double lastWheelEventTime = lastWheelEventReadValue / 1024.0;
             double lastCrankEventTime = lastCrankEventReadValue / 1024.0;
+            long timeStamp = System.currentTimeMillis();
 
             tracer.debug("onCharacteristicChanged " + cumulativeWheelRevolutions + ":" + lastWheelEventReadValue + ":" + cumulativeCrankRevolutions + ":" + lastCrankEventReadValue);
 
@@ -1196,11 +1203,11 @@ public class GpsLoggingService extends Service implements IActionListener {
 
 
             long numberOfWheelRevolutions = cumulativeWheelRevolutions - lastWheelCount;
+            double wheelTimeDiff = lastWheelEventTime - lastWheelTime;
 
-            if (lastWheelTime  != lastWheelEventTime && numberOfWheelRevolutions > 0){
-                double timeDiff = lastWheelEventTime - lastWheelTime;
+            if (wheelTimeDiff > 0 && numberOfWheelRevolutions > 0){
 
-                double speedinMetersPerSeconds = (wheelSize * numberOfWheelRevolutions) / timeDiff;
+                double speedinMetersPerSeconds = (wheelSize * numberOfWheelRevolutions) / wheelTimeDiff;
                 double speedInKilometersPerHour = speedinMetersPerSeconds * 3.6;
 
                 tracer.debug("speed:" + speedInKilometersPerHour);
@@ -1214,15 +1221,21 @@ public class GpsLoggingService extends Service implements IActionListener {
                     ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
                     toneG.startTone(ToneGenerator.TONE_DTMF_1, 200);
                 }
+                lastBicyclingSpeedTimeStamp = System.currentTimeMillis();
+            } else {
+                if ( lastBicyclingSpeedTimeStamp != 0 && timeStamp - lastBicyclingSpeedTimeStamp > revolutionTimeout * 1000 ) {
+                    serviceIntent.putExtra("speed", 0.0);
+                    lastBicyclingSpeedTimeStamp = 0;
+                }
             }
 
 
             long numberOfCrankRevolutions = cumulativeCrankRevolutions - lastCrankCount;
+            double crankTimeDiff = lastCrankEventTime - lastCrankTime;
 
-            if (lastCrankTime  != lastCrankEventTime && numberOfCrankRevolutions > 0){
-                double timeDiff = lastCrankEventTime - lastCrankTime;
+            if (crankTimeDiff > 0 && numberOfCrankRevolutions > 0){
 
-                double cadenceinRevolutionsPerMinute = numberOfCrankRevolutions * 60 / timeDiff;
+                double cadenceinRevolutionsPerMinute = numberOfCrankRevolutions * 60 / crankTimeDiff;
 
                 tracer.debug("cadence:" + cadenceinRevolutionsPerMinute);
 
@@ -1234,6 +1247,12 @@ public class GpsLoggingService extends Service implements IActionListener {
                 if (beepBTLE) {
                     ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
                     toneG.startTone(ToneGenerator.TONE_DTMF_9, 200);
+                }
+                lastBicyclingCadenceTimeStamp = System.currentTimeMillis();
+            } else {
+                if ( lastBicyclingCadenceTimeStamp != 0 && timeStamp - lastBicyclingCadenceTimeStamp > revolutionTimeout * 1000 ) {
+                    serviceIntent.putExtra("cadence", 0.0);
+                    lastBicyclingCadenceTimeStamp = 0;
                 }
             }
 
