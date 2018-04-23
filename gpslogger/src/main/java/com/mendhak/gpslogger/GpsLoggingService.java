@@ -211,12 +211,12 @@ public class GpsLoggingService extends Service implements IActionListener {
                 }
 
                 if (startBTLE) {
-                    tracer.info("Intent received - Start BTLE Now");
+                    tracer.info("Intent received - Start BTLE Bicycling Now");
                     StartBTLE();
                 }
 
                 if (stopBTLE) {
-                    tracer.info("Intent received - Stop BTLE now");
+                    tracer.info("Intent received - Stop BTLE Bicycling now");
                     StopBTLE();
                     StopLogging();
                 }
@@ -471,7 +471,7 @@ public class GpsLoggingService extends Service implements IActionListener {
                 .getDefaultSharedPreferences(getApplicationContext());
         if (prefs.getBoolean("vibrate", false)) {
             Vibrator v = (Vibrator) getSystemService(getApplicationContext().VIBRATOR_SERVICE);
-            long[] pattern = {0, 1000};
+            long[] pattern = {0, 2000, 2000, 2000, 2000, 2000};
             v.vibrate(pattern, -1);
         }
     }
@@ -511,7 +511,7 @@ public class GpsLoggingService extends Service implements IActionListener {
                 .getDefaultSharedPreferences(getApplicationContext());
         if (prefs.getBoolean("vibrate", false)) {
             Vibrator v = (Vibrator) getSystemService(getApplicationContext().VIBRATOR_SERVICE);
-            long[] pattern = {0, 250, 500, 250};
+            long[] pattern = {0, 250, 2000, 250, 2000, 250};
             v.vibrate(pattern, -1);
         }
     }
@@ -1066,7 +1066,7 @@ public class GpsLoggingService extends Service implements IActionListener {
         if (wheelSize==0) wheelSize=wheelSizeDefault;
         beepBTLE = prefs.getBoolean("btle_beep", false);
         String btleDevice = prefs.getString("btle_device", "no device yet");
-        tracer.debug("Starting BTLE waiting for '"+btleDevice+"'.");
+        tracer.debug("Starting Bicycling BTLE waiting for '"+btleDevice+"'.");
         if (connectedGatt != null) {
             connectedGatt.disconnect();
             connectedGatt.close();
@@ -1077,7 +1077,7 @@ public class GpsLoggingService extends Service implements IActionListener {
     }
 
     protected void StopBTLE() {
-        tracer.debug("Stopping BTLE.");
+        tracer.debug("Stopping Bicycling BTLE.");
         if (connectedGatt != null) {
             connectedGatt.disconnect();
             connectedGatt.close();
@@ -1104,7 +1104,7 @@ public class GpsLoggingService extends Service implements IActionListener {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int state) {
             connectingToGatt = false;
             super.onConnectionStateChange(gatt, status, state);
-            tracer.debug("onConnectionStateChange gatt:" + gattToString(gatt) + " status:" + statusToString(status) + " state:" + connectionStateToString(state));
+            tracer.debug("onConnectionStateChange Bicycling gatt:" + gattToString(gatt) + " status:" + statusToString(status) + " state:" + connectionStateToString(state));
 
             switch (state) {
                 case BluetoothGatt.STATE_CONNECTED: {
@@ -1135,7 +1135,7 @@ public class GpsLoggingService extends Service implements IActionListener {
         @Override
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             super.onReadRemoteRssi(gatt, rssi, status);
-            tracer.debug("onReadRemoteRssi rssi:" + rssi);
+            tracer.debug("onReadRemoteRssi Bicycling rssi:" + rssi);
 
             Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
             serviceIntent.putExtra("updatebicycling", true);
@@ -1146,7 +1146,7 @@ public class GpsLoggingService extends Service implements IActionListener {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
-            tracer.debug("onServicesDiscovered status:" + statusToString(status));
+            tracer.debug("onServicesDiscovered Bicycling status:" + statusToString(status));
             BluetoothGattCharacteristic valueCharacteristic = gatt.getService(CSC_SERVICE_UUID).getCharacteristic(CSC_CHARACTERISTIC_UUID);
             boolean notificationSet = gatt.setCharacteristicNotification(valueCharacteristic, true);
             tracer.debug("registered for updates " + (notificationSet ? "successfully" : "unsuccessfully"));
@@ -1157,9 +1157,9 @@ public class GpsLoggingService extends Service implements IActionListener {
             tracer.debug("wrote Descriptor for updates " + (writeDescriptorSuccess ? "successfully" : "unsuccessfully") );
         }
 
-        double lastWheelTime = NOT_SET;
+        long lastWheelEventReadValue = NOT_SET;
         long lastWheelCount = NOT_SET;
-        double lastCrankTime = NOT_SET;
+        long lastCrankEventReadValue = NOT_SET;
         long lastCrankCount = NOT_SET;
 
         @Override
@@ -1167,26 +1167,24 @@ public class GpsLoggingService extends Service implements IActionListener {
             super.onCharacteristicChanged(gatt, characteristic);
             byte[] value = characteristic.getValue();
 
-            final long cumulativeWheelRevolutions       = (value[1] & 0xff) | ((value[2] & 0xff) << 8) | ((value[3] & 0xff) << 16) | ((value[4] & 0xff) << 24);
-            final int lastWheelEventReadValue           = (value[5] & 0xff) | ((value[6] & 0xff) << 8);
-            final long cumulativeCrankRevolutions        = (value[7] & 0xff) | ((value[8] & 0xff) << 8);
-            final int lastCrankEventReadValue           = (value[9] & 0xff) | ((value[10] & 0xff) << 8);
+            final long cumulativeWheelRevolutions = (value[1] & 0xff) | ((value[2] & 0xff) << 8) | ((value[3] & 0xff) << 16) | ((value[4] & 0xff) << 24);
+            final long currentWheelEventReadValue = (value[5] & 0xff) | ((value[6] & 0xff) << 8);
+            final long cumulativeCrankRevolutions = (value[7] & 0xff) | ((value[8] & 0xff) << 8);
+            final long currentCrankEventReadValue = (value[9] & 0xff) | ((value[10] & 0xff) << 8);
 
-            double lastWheelEventTime = lastWheelEventReadValue / 1024.0;
-            double lastCrankEventTime = lastCrankEventReadValue / 1024.0;
             long timeStamp = System.currentTimeMillis();
 
-            tracer.debug("onCharacteristicChanged " + cumulativeWheelRevolutions + ":" + lastWheelEventReadValue + ":" + cumulativeCrankRevolutions + ":" + lastCrankEventReadValue);
+            tracer.debug("onCharacteristicChanged Bicycling " + cumulativeWheelRevolutions + "," + currentWheelEventReadValue + "," + cumulativeCrankRevolutions + "," + currentCrankEventReadValue);
 
-            if (lastWheelTime == NOT_SET){
-                lastWheelTime = lastWheelEventTime;
+            if (lastWheelEventReadValue == NOT_SET){
+                lastWheelEventReadValue = currentWheelEventReadValue;
             }
             if (lastWheelCount == NOT_SET){
                 lastWheelCount = cumulativeWheelRevolutions;
             }
 
-            if (lastCrankTime == NOT_SET){
-                lastCrankTime = lastCrankEventTime;
+            if (lastCrankEventReadValue == NOT_SET){
+                lastCrankEventReadValue = currentCrankEventReadValue;
             }
             if (lastCrankCount == NOT_SET){
                 lastCrankCount = cumulativeCrankRevolutions;
@@ -1194,28 +1192,29 @@ public class GpsLoggingService extends Service implements IActionListener {
 
             Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
             serviceIntent.putExtra("updatebicycling", true);
-            //serviceIntent.putExtra("status", String.format( "Speed: %.1f Dist: %.3f C: %d", speedInKilometersPerHour, distanceinKilometers, numberOfCrankRevolutions));
-
 
             double distanceinKilometers = cumulativeWheelRevolutions * wheelSize / 1000;
-            tracer.debug("distance:" + distanceinKilometers);
+            tracer.debug("Bicycling distance:" + distanceinKilometers);
             serviceIntent.putExtra("distance", distanceinKilometers);
 
 
             long numberOfWheelRevolutions = cumulativeWheelRevolutions - lastWheelCount;
-            double wheelTimeDiff = lastWheelEventTime - lastWheelTime;
+            double wheelTimeDiff = ( (currentWheelEventReadValue - lastWheelEventReadValue + (1<<16)) % (1<<16) ) / 1024.0;
+
+            if (wheelTimeDiff < 0) lastWheelEventReadValue=NOT_SET;
+            if (numberOfWheelRevolutions < 0) lastWheelCount=NOT_SET;
 
             if (wheelTimeDiff > 0 && numberOfWheelRevolutions > 0){
 
                 double speedinMetersPerSeconds = (wheelSize * numberOfWheelRevolutions) / wheelTimeDiff;
                 double speedInKilometersPerHour = speedinMetersPerSeconds * 3.6;
 
-                tracer.debug("speed:" + speedInKilometersPerHour);
+                tracer.debug("Bicycling speed:" + speedInKilometersPerHour);
 
-                serviceIntent.putExtra("speed", speedInKilometersPerHour);
+                serviceIntent.putExtra("speed", speedinMetersPerSeconds);
 
                 lastWheelCount = cumulativeWheelRevolutions;
-                lastWheelTime = lastWheelEventTime;
+                lastWheelEventReadValue = currentWheelEventReadValue;
 
                 if (beepBTLE) {
                     ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
@@ -1231,18 +1230,21 @@ public class GpsLoggingService extends Service implements IActionListener {
 
 
             long numberOfCrankRevolutions = cumulativeCrankRevolutions - lastCrankCount;
-            double crankTimeDiff = lastCrankEventTime - lastCrankTime;
+            double crankTimeDiff = ( (currentCrankEventReadValue - lastCrankEventReadValue + (1<<16)) % (1<<16) ) / 1024.0;
+
+            if (crankTimeDiff<0) lastCrankEventReadValue=NOT_SET;
+            if (numberOfCrankRevolutions<0) numberOfCrankRevolutions=NOT_SET;
 
             if (crankTimeDiff > 0 && numberOfCrankRevolutions > 0){
 
                 double cadenceinRevolutionsPerMinute = numberOfCrankRevolutions * 60 / crankTimeDiff;
 
-                tracer.debug("cadence:" + cadenceinRevolutionsPerMinute);
+                tracer.debug("Bicycling cadence:" + cadenceinRevolutionsPerMinute);
 
                 serviceIntent.putExtra("cadence", cadenceinRevolutionsPerMinute);
 
                 lastCrankCount = cumulativeCrankRevolutions;
-                lastCrankTime = lastCrankEventTime;
+                lastCrankEventReadValue = currentCrankEventReadValue;
 
                 if (beepBTLE) {
                     ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);

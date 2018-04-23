@@ -191,7 +191,7 @@ public class LoggingSettingsActivity extends PreferenceActivity implements Prefe
                 final UUID CSC_SERVICE_UUID = UUID.fromString("00001816-0000-1000-8000-00805f9b34fb");
                 UUID[] serviceUUIDs = new UUID[]{CSC_SERVICE_UUID};
                 boolean mScanning;
-                final long SCAN_PERIOD = 30000;
+                final long SCAN_PERIOD = 10000;
                 final Handler handler = new Handler();
                 final BluetoothAdapter.LeScanCallback mLeScanCallback =
                         new BluetoothAdapter.LeScanCallback() {

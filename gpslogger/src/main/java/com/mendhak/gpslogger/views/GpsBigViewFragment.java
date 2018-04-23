@@ -75,7 +75,7 @@ public class GpsBigViewFragment extends GenericViewFragment implements View.OnTo
         TextView txtBicycling = (TextView) rootView.findViewById(R.id.bigview_text_bicycling);
 
         if (Session.getBicyclingDistance()>0) {
-            txtBicycling.setText(String.format( "%.1f km/h\n%.3f km\n%.0f rpm", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence()));
+            txtBicycling.setText(String.format( "%.1f m/s\n%.3f km\n%.0f rpm", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence()));
         }
 
         if (locationInfo != null) {

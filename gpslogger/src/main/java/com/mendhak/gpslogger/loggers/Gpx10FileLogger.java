@@ -244,6 +244,7 @@ class Gpx10WriteHandler implements Runnable {
     String GetTrackPointXml(Location loc, String dateTimeString) {
 
         StringBuilder track = new StringBuilder();
+        Boolean bicycling = false;
 
         if (addNewTrackSegment) {
             track.append("<trkseg>");
@@ -264,11 +265,6 @@ class Gpx10WriteHandler implements Runnable {
         if (loc.hasBearing()) {
             track.append("<course>").append(String.valueOf(loc.getBearing())).append("</course>");
         }
-
-        if (loc.hasSpeed()) {
-            track.append("<speed>").append(String.valueOf(loc.getSpeed())).append("</speed>");
-        }
-
         track.append("<src>").append(loc.getProvider()).append("</src>");
 
         if (satelliteCount > 0) {
@@ -311,12 +307,21 @@ class Gpx10WriteHandler implements Runnable {
             }
 
             if (bicyclingdistance>0) {
+                bicycling = true;
+                track.append("<speed>").append(String.format("%.1f",bicyclingspeed)).append("</speed>");
                 track.append("<!-- <extensions>");
                 track.append("<bicycling:speed>").append(String.format("%.1f",bicyclingspeed)).append("</bicycling:speed>");
                 track.append("<bicycling:distance>").append(String.format("%.3f",bicyclingdistance)).append("</bicycling:distance>");
                 track.append("<bicycling:cadence>").append(String.format("%.0f",bicyclingcadence)).append("</bicycling:cadence>");
+                if (loc.hasSpeed()) {
+                    track.append("<bicycling:gpsspeed>").append(String.valueOf(loc.getSpeed())).append("</bicycling:gpsspeed>");
+                }
                 track.append("</extensions> -->");
             }
+        }
+
+        if (loc.hasSpeed() && !bicycling) {
+            track.append("<speed>").append(String.valueOf(loc.getSpeed())).append("</speed>");
         }
 
 
