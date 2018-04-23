@@ -30,6 +30,10 @@ import com.mendhak.gpslogger.common.Session;
 import org.slf4j.LoggerFactory;
 
 import java.text.NumberFormat;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 
 public class GpsBigViewFragment extends GenericViewFragment implements View.OnTouchListener {
 
@@ -52,11 +56,8 @@ public class GpsBigViewFragment extends GenericViewFragment implements View.OnTo
 
         rootView = inflater.inflate(R.layout.fragment_big_view, container, false);
 
-        TextView txtLat = (TextView) rootView.findViewById(R.id.bigview_text_lat);
-        txtLat.setOnTouchListener(this);
-
-        TextView txtLong = (TextView) rootView.findViewById(R.id.bigview_text_long);
-        txtLong.setOnTouchListener(this);
+        TextView txtLatLong = (TextView) rootView.findViewById(R.id.bigview_text_latlong);
+        txtLatLong.setOnTouchListener(this);
 
         SetLocation(Session.getCurrentLocationInfo());
 
@@ -70,25 +71,31 @@ public class GpsBigViewFragment extends GenericViewFragment implements View.OnTo
 
     @Override
     public void SetLocation(Location locationInfo) {
-        TextView txtLat = (TextView) rootView.findViewById(R.id.bigview_text_lat);
-        TextView txtLong = (TextView) rootView.findViewById(R.id.bigview_text_long);
+        TextView txtLatLong = (TextView) rootView.findViewById(R.id.bigview_text_latlong);
+        TextView txtTime = (TextView) rootView.findViewById(R.id.bigview_text_time);
+        TextView txtSpeed = (TextView) rootView.findViewById(R.id.bigview_text_speed);
         TextView txtBicycling = (TextView) rootView.findViewById(R.id.bigview_text_bicycling);
 
         if (Session.getBicyclingDistance()>0) {
-            txtBicycling.setText(String.format( "%.1f m/s\n%.3f km\n%.0f rpm", Session.getBicyclingSpeed(), Session.getBicyclingDistance(), Session.getBicyclingCadence()));
+            txtBicycling.setText(String.format( "%.1f km/h\n%.0f rpm\n%.3f km", Session.getBicyclingSpeed(), Session.getBicyclingCadence(), Session.getBicyclingDistance()));
         }
 
         if (locationInfo != null) {
             NumberFormat nf = NumberFormat.getInstance();
             nf.setMaximumFractionDigits(6);
 
-            txtLat.setText(String.valueOf(nf.format(locationInfo.getLatitude())));
+            txtLatLong.setText(String.valueOf(nf.format(locationInfo.getLatitude())) + " " +
+                           String.valueOf(nf.format(locationInfo.getLongitude())));
 
-            txtLong.setText(String.valueOf(nf.format(locationInfo.getLongitude())));
+            txtTime.setText(new Date(Session.getLatestTimeStamp()).toLocaleString());
+
+            if (locationInfo.hasSpeed()) {
+                txtSpeed.setText(String.valueOf(locationInfo.getSpeed()) + " km/h");
+            }
         } else if (Session.isStarted()) {
-            txtLat.setText("...");
+            txtLatLong.setText("...");
         } else {
-            txtLat.setText(R.string.bigview_taptotoggle);
+            txtLatLong.setText(R.string.bigview_taptotoggle);
         }
     }
 
@@ -99,11 +106,11 @@ public class GpsBigViewFragment extends GenericViewFragment implements View.OnTo
 
     @Override
     public void SetLoggingStarted() {
-        TextView txtLat = (TextView) rootView.findViewById(R.id.bigview_text_lat);
-        TextView txtLong = (TextView) rootView.findViewById(R.id.bigview_text_long);
+        TextView txtLatLong = (TextView) rootView.findViewById(R.id.bigview_text_latlong);
+        TextView txtTime = (TextView) rootView.findViewById(R.id.bigview_text_time);
         TextView txtBicycling = (TextView) rootView.findViewById(R.id.bigview_text_bicycling);
-        txtLat.setText("");
-        txtLong.setText("");
+        txtLatLong.setText("");
+        txtTime.setText("");
         txtBicycling.setText("");
     }
 

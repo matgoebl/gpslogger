@@ -244,7 +244,7 @@ class Gpx10WriteHandler implements Runnable {
     String GetTrackPointXml(Location loc, String dateTimeString) {
 
         StringBuilder track = new StringBuilder();
-        Boolean bicycling = false;
+        Boolean bicyclingoverwritten = false;
 
         if (addNewTrackSegment) {
             track.append("<trkseg>");
@@ -255,10 +255,6 @@ class Gpx10WriteHandler implements Runnable {
                 .append("\" lon=\"")
                 .append(String.valueOf(loc.getLongitude()))
                 .append("\">");
-
-        if (loc.hasAltitude()) {
-            track.append("<ele>").append(String.valueOf(loc.getAltitude())).append("</ele>");
-        }
 
         track.append("<time>").append(dateTimeString).append("</time>");
 
@@ -281,6 +277,7 @@ class Gpx10WriteHandler implements Runnable {
             double bicyclingspeed = loc.getExtras().getDouble("bicyclingspeed",0);
             double bicyclingdistance = loc.getExtras().getDouble("bicyclingdistance",0);
             double bicyclingcadence = loc.getExtras().getDouble("bicyclingcadence",0);
+            Boolean bicyclingoverwrite = loc.getExtras().getBoolean("bicyclingoverwrite",false);
 
             if (!Utilities.IsNullOrEmpty(hdop)) {
                 track.append("<hdop>").append(hdop).append("</hdop>");
@@ -307,23 +304,35 @@ class Gpx10WriteHandler implements Runnable {
             }
 
             if (bicyclingdistance>0) {
-                bicycling = true;
-                track.append("<speed>").append(String.format("%.1f",bicyclingspeed)).append("</speed>");
                 track.append("<!-- <extensions>");
                 track.append("<bicycling:speed>").append(String.format("%.1f",bicyclingspeed)).append("</bicycling:speed>");
                 track.append("<bicycling:distance>").append(String.format("%.3f",bicyclingdistance)).append("</bicycling:distance>");
                 track.append("<bicycling:cadence>").append(String.format("%.0f",bicyclingcadence)).append("</bicycling:cadence>");
-                if (loc.hasSpeed()) {
-                    track.append("<bicycling:gpsspeed>").append(String.valueOf(loc.getSpeed())).append("</bicycling:gpsspeed>");
+                if (bicyclingoverwrite) {
+                    bicyclingoverwritten = true;
+                    if (loc.hasSpeed()) {
+                        track.append("<bicycling:gpsspeed>").append(String.valueOf(loc.getSpeed())).append("</bicycling:gpsspeed>");
+                    }
+                    if (loc.hasAltitude()) {
+                        track.append("<bicycling:gpsele>").append(String.valueOf(loc.getAltitude())).append("</bicycling:gpsele>");
+                    }
                 }
                 track.append("</extensions> -->");
+                if (bicyclingoverwrite) {
+                    track.append("<speed>").append(String.format("%.1f",bicyclingspeed)).append("</speed>");
+                    track.append("<ele>").append(String.valueOf(bicyclingcadence)).append("</ele>");
+                }
+
             }
         }
 
-        if (loc.hasSpeed() && !bicycling) {
+        if (loc.hasSpeed() && !bicyclingoverwritten) {
             track.append("<speed>").append(String.valueOf(loc.getSpeed())).append("</speed>");
         }
 
+        if (loc.hasAltitude() && !bicyclingoverwritten) {
+            track.append("<ele>").append(String.valueOf(loc.getAltitude())).append("</ele>");
+        }
 
         track.append("</trkpt>\n");
 

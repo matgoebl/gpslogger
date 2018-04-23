@@ -165,6 +165,12 @@
             android:title="@string/btle_scan_title"
             android:summary="@string/btle_scan_summary"/>
         <CheckBoxPreference
+            android:key="btle_overwrite"
+            android:title="@string/btle_overwrite_title"
+            android:summary="@string/btle_overwrite_summary"
+            android:defaultValue="false"
+            />
+        <CheckBoxPreference
             android:key="btle_beep"
             android:title="@string/btle_beep_title"
             android:summary="@string/btle_beep_summary"

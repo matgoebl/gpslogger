@@ -471,7 +471,7 @@ public class GpsLoggingService extends Service implements IActionListener {
                 .getDefaultSharedPreferences(getApplicationContext());
         if (prefs.getBoolean("vibrate", false)) {
             Vibrator v = (Vibrator) getSystemService(getApplicationContext().VIBRATOR_SERVICE);
-            long[] pattern = {0, 2000, 2000, 2000, 2000, 2000};
+            long[] pattern = {0, 200, 500, 1000};
             v.vibrate(pattern, -1);
         }
     }
@@ -889,6 +889,8 @@ public class GpsLoggingService extends Service implements IActionListener {
             locExtras.putDouble("bicyclingspeed",Session.getBicyclingSpeed());
             locExtras.putDouble("bicyclingdistance",Session.getBicyclingDistance());
             locExtras.putDouble("bicyclingcadence",Session.getBicyclingCadence());
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            locExtras.putBoolean("bicyclingoverwrite",prefs.getBoolean("btle_overwrite", false));
             loc.setExtras(locExtras);
         }
 
@@ -1161,6 +1163,7 @@ public class GpsLoggingService extends Service implements IActionListener {
         long lastWheelCount = NOT_SET;
         long lastCrankEventReadValue = NOT_SET;
         long lastCrankCount = NOT_SET;
+        long initialWheelRevolutions = NOT_SET;
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
@@ -1193,7 +1196,10 @@ public class GpsLoggingService extends Service implements IActionListener {
             Intent serviceIntent = new Intent(getBaseContext(), GpsLoggingService.class);
             serviceIntent.putExtra("updatebicycling", true);
 
-            double distanceinKilometers = cumulativeWheelRevolutions * wheelSize / 1000;
+            if (initialWheelRevolutions == NOT_SET){
+                initialWheelRevolutions = cumulativeWheelRevolutions;
+            }
+            double distanceinKilometers = (cumulativeWheelRevolutions -initialWheelRevolutions) * wheelSize / 1000;
             tracer.debug("Bicycling distance:" + distanceinKilometers);
             serviceIntent.putExtra("distance", distanceinKilometers);
 

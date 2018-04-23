@@ -17,5 +17,6 @@
     <dimen name="detailedview_latlong_labelsize">15sp</dimen>
 
     <dimen name="bigview_textsize">70sp</dimen>
+    <dimen name="bigview_textsize2">30sp</dimen>
 
 </resources>
