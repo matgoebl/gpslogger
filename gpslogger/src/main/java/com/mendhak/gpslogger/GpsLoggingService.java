@@ -587,6 +587,7 @@ public class GpsLoggingService extends Service implements IActionListener {
     private void StartGpsManager() {
         tracer.debug("GpsLoggingService.StartGpsManager");
 
+        InitBTLEReadings();
         GetPreferences();
 
         if (gpsLocationListener == null) {
@@ -1100,6 +1101,19 @@ public class GpsLoggingService extends Service implements IActionListener {
 
     public static final int NOT_SET = Integer.MIN_VALUE;
 
+    long lastWheelEventReadValue = NOT_SET;
+    long lastWheelCount = NOT_SET;
+    long lastCrankEventReadValue = NOT_SET;
+    long lastCrankCount = NOT_SET;
+    long initialWheelRevolutions = NOT_SET;
+
+    public void InitBTLEReadings() {
+        lastWheelEventReadValue = NOT_SET;
+        lastWheelCount = NOT_SET;
+        lastCrankEventReadValue = NOT_SET;
+        lastCrankCount = NOT_SET;
+        initialWheelRevolutions = NOT_SET;
+    }
 
     private BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
         @Override
@@ -1158,12 +1172,6 @@ public class GpsLoggingService extends Service implements IActionListener {
             boolean writeDescriptorSuccess = gatt.writeDescriptor(descriptor);
             tracer.debug("wrote Descriptor for updates " + (writeDescriptorSuccess ? "successfully" : "unsuccessfully") );
         }
-
-        long lastWheelEventReadValue = NOT_SET;
-        long lastWheelCount = NOT_SET;
-        long lastCrankEventReadValue = NOT_SET;
-        long lastCrankCount = NOT_SET;
-        long initialWheelRevolutions = NOT_SET;
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
